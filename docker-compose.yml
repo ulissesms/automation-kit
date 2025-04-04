@@ -11,9 +11,9 @@ networks:
 x-n8n: &service-n8n
  image: n8nio/n8n:1.86.0
  networks: ['demo']
+ user: root
  environment:
    - DB_TYPE=postgresdb
-
    - DB_POSTGRESDB_HOST=postgres
    - DB_POSTGRESDB_USER=${POSTGRES_USER}
    - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
@@ -24,9 +24,19 @@ x-n8n: &service-n8n
    - QUEUE_BULL_REDIS_HOST=redis
    - QUEUE_BULL_REDIS_PORT=6379
    - QUEUE_BULL_REDIS_PASSWORD=${REDIS_PASSWORD}
+   - PYTHONPATH=/opt/venv/lib/python3.11/site-packages:${PYTHONPATH:-}
+   - PATH=/opt/venv/bin:$PATH
  links:
    - postgres
    - redis
+ entrypoint: >
+   /bin/sh -c "
+   apk add --update python3 py3-pip gcc python3-dev musl-dev curl ffmpeg &&
+   python3 -m venv /opt/venv &&
+   . /opt/venv/bin/activate &&
+   pip install yt-dlp &&
+   chown -R node:node /opt/venv &&
+   su node -c 'n8n start'"
 
 x-ollama: &service-ollama
  image: ollama/ollama:latest
@@ -97,7 +107,7 @@ services:
    entrypoint: /bin/sh
    command:
      - "-c"
-     - "n8n import:credentials --separate --input=/backup/credentials && n8n import:workflow --separate --input=/backup/workflows"
+     - "apk add --update python3 py3-pip gcc python3-dev musl-dev curl ffmpeg && python3 --version && ffmpeg -version && n8n import:credentials --separate --input=/backup/credentials && n8n import:workflow --separate --input=/backup/workflows"
    volumes:
      - ./n8n/backup:/backup
    depends_on:
