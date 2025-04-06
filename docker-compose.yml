@@ -5,6 +5,7 @@ volumes:
  qdrant_storage:
  redis_storage:
  minio_storage:
+ baserow_storage:
 
 networks:
  demo:
@@ -208,3 +209,27 @@ services:
      interval: 5s
      timeout: 5s
      retries: 5
+
+ baserow:
+   image: baserow/baserow:1.21.2
+   container_name: baserow
+   networks: ['demo']
+   restart: unless-stopped
+   environment:
+     - BASEROW_PUBLIC_URL=http://localhost:8080
+     - DATABASE_HOST=postgres
+     - DATABASE_NAME=${POSTGRES_DB}
+     - DATABASE_USER=${POSTGRES_USER}
+     - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+     - REDIS_HOST=redis
+     - REDIS_PORT=6379
+     - REDIS_PASSWORD=${REDIS_PASSWORD}
+   ports:
+     - "8080:80"
+   volumes:
+     - baserow_storage:/baserow/data
+   depends_on:
+     postgres:
+       condition: service_healthy
+     redis:
+       condition: service_healthy
