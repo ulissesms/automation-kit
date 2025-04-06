@@ -42,3 +42,4 @@ dump.rdb
 
 # n8n specific
 .n8n/
+.DS_Store
