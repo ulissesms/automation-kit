@@ -6,6 +6,8 @@ volumes:
  redis_storage:
  minio_storage:
  baserow_storage:
+ coqui_storage:
+ nca_storage:
 
 networks:
  demo:
@@ -233,3 +235,38 @@ services:
        condition: service_healthy
      redis:
        condition: service_healthy
+
+ kokoro-tts:
+   image: ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.2
+   container_name: kokoro-tts
+   networks: ['demo']
+   restart: unless-stopped
+   ports:
+     - "8880:8880"
+   profiles: ["gpu-nvidia"]
+   deploy:
+     resources:
+       reservations:
+         devices:
+           - driver: nvidia
+             count: 1
+             capabilities: [gpu]
+   healthcheck:
+     test: ["CMD", "curl", "-f", "http://localhost:8880/health"]
+     interval: 30s
+     timeout: 10s
+     retries: 3
+
+ kokoro-tts-cpu:
+   image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.2
+   container_name: kokoro-tts-cpu
+   networks: ['demo']
+   restart: unless-stopped
+   ports:
+     - "8880:8880"
+   profiles: ["cpu"]
+   healthcheck:
+     test: ["CMD", "curl", "-f", "http://localhost:8880/health"]
+     interval: 30s
+     timeout: 10s
+     retries: 3
