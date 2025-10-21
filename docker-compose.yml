@@ -7,6 +7,8 @@ volumes:
   waha_media:
   wuzapi_sessions:
   wuzapi_media:
+  evolution_instances:
+  evolution_store:
 
 networks:
   demo:
@@ -220,6 +222,104 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.6
+    container_name: evolution-api
+    networks: ['demo']
+    restart: unless-stopped
+    ports:
+      - "8021:8080"
+    environment:
+      # Server Config
+      - SERVER_TYPE=http
+      - SERVER_PORT=8080
+      - SERVER_URL=${EVOLUTION_SERVER_URL:-http://localhost:8021}
+      
+      # CORS
+      - CORS_ORIGIN=*
+      - CORS_METHODS=GET,POST,PUT,DELETE
+      - CORS_CREDENTIALS=true
+      
+      # Log Config
+      - LOG_LEVEL=${EVOLUTION_LOG_LEVEL:-ERROR}
+      - LOG_COLOR=true
+      - LOG_BAILEYS=${EVOLUTION_LOG_BAILEYS:-error}
+      
+      # Database Config
+      - DATABASE_ENABLED=true
+      - DATABASE_CONNECTION_URI=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/evolution?schema=public
+      - DATABASE_CONNECTION_CLIENT_NAME=evolution_db
+      
+      # Redis Config
+      - REDIS_ENABLED=true
+      - REDIS_URI=redis://default:${REDIS_PASSWORD}@redis:6379
+      - REDIS_PREFIX_KEY=evolution
+      
+      # RabbitMQ Config (opcional)
+      - RABBITMQ_ENABLED=false
+      
+      # EventsWebhook Config
+      - WEBSOCKET_ENABLED=false
+      
+      # Global Webhook
+      - WEBHOOK_GLOBAL_URL=${EVOLUTION_WEBHOOK_URL:-}
+      - WEBHOOK_GLOBAL_ENABLED=false
+      - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
+      
+      # Config Session
+      - CONFIG_SESSION_PHONE_CLIENT=Evolution API
+      - CONFIG_SESSION_PHONE_NAME=Chrome
+      
+      # Qr Code Config
+      - QRCODE_LIMIT=30
+      - QRCODE_COLOR=#198754
+      
+      # Typebot Config
+      - TYPEBOT_API_VERSION=latest
+      
+      # Chatwoot Config
+      - CHATWOOT_MESSAGE_READ=true
+      - CHATWOOT_MESSAGE_DELETE=true
+      
+      # Cache Config
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://default:${REDIS_PASSWORD}@redis:6379
+      - CACHE_REDIS_PREFIX_KEY=evolution
+      - CACHE_REDIS_TTL=604800
+      - CACHE_LOCAL_ENABLED=false
+      
+      # Authentication
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-B6D711FCDE4D4FD5936544120E713976}
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+      
+      # Language
+      - LANGUAGE=pt-BR
+      
+      # DEL_INSTANCE
+      - DEL_INSTANCE=false
+      - DEL_TEMP_INSTANCES=true
+      
+      # Provider Files
+      - PROVIDER_ENABLED=false
+      
+      # S3 Config (opcional)
+      - S3_ENABLED=false
+      
+    volumes:
+      - evolution_instances:/evolution/instances
+      - evolution_store:/evolution/store
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   ollama-cpu:
     profiles: ["cpu"]
