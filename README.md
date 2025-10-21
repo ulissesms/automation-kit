@@ -77,65 +77,92 @@ docker compose create && docker compose --profile cpu up
 Consulte o conteúdo do n8n para começar com IA. Para suporte, vá ao Fórum n8n.
 🛍️ Mais Templates de IA
 Visite a galeria de templates de IA do n8n para mais ideias.
-Dicas e Truques
-Acessando Arquivos Locais
-Uma pasta compartilhada é criada no diretório do projeto, montada em /data/shared no container n8n. Use esse caminho em nós que interagem com o sistema de arquivos.
-Configurando o Cloudflare Tunnel
+## Dicas e Truques
 
-Após iniciar o ambiente, o cloudflared criará um túnel. Veja os logs para o domínio gerado:docker logs cloudflared
+### Acessando Arquivos Locais
+Uma pasta compartilhada é criada no diretório do projeto, montada em `/data/shared` no container n8n. Use esse caminho em nós que interagem com o sistema de arquivos.
 
+### Configurando o Cloudflare Tunnel
+Após iniciar o ambiente, o cloudflared criará um túnel. Veja os logs para o domínio gerado:
+
+```bash
+docker logs cloudflared
+```
 
 Adicione os serviços desejados (ex.: n8n, wuzapi) ao túnel editando o arquivo de configuração ou variáveis de ambiente.
 
-Configuração
-Arquivo .env.example
-Um exemplo de arquivo .env está fornecido como .env.example. Crie seu próprio .env a partir dele:
+## Configuração
+
+### Arquivo .env.example
+Um exemplo de arquivo .env está fornecido como `.env.example`. Crie seu próprio `.env` a partir dele:
+
+```env
+# Configurações do PostgreSQL
 DB_HOST=postgres-1
 DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=sua_senha
 DB_NAME=wuzapi
+
+# Configurações do Wuzapi
 WUZAPI_ADMIN_TOKEN=seu_token_wuzapi
+
+# Configurações do n8n
 N8N_PROTOCOL=http
 N8N_HOST=localhost
 N8N_PORT=5678
+
+# Configurações do Ollama
 OLLAMA_HOST=http://host.docker.internal:11434
+
+# Configurações do Qdrant
 QDRANT_HOST=qdrant
 QDRANT_PORT=6333
+
+# Configurações do Waha
 WAHA_HOST=http://host.docker.internal:3000
 WAHA_TOKEN=seu_token_waha
+
+# Configurações do Cloudflare Tunnel
 CLOUDFLARE_TUNNEL_TOKEN=seu_token_cloudflare
 CLOUDFLARE_TUNNEL_DOMAIN=seu-subdominio.trycloudflare.com
+```
+
+### Descrição das Variáveis
+
+- **DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME**: Configurações do PostgreSQL para o Wuzapi
+- **WUZAPI_ADMIN_TOKEN**: Token de autenticação para o Wuzapi (porta 8080)
+- **N8N_PROTOCOL/N8N_HOST/N8N_PORT**: Configurações do n8n (porta 5678)
+- **OLLAMA_HOST**: Host do Ollama (ajuste para Mac ou GPU)
+- **QDRANT_HOST/QDRANT_PORT**: Configurações do Qdrant (porta 6333)
+- **WAHA_HOST/WAHA_TOKEN**: Configurações do Waha (porta 3000, token específico)
+- **CLOUDFLARE_TUNNEL_TOKEN**: Token de autenticação do Cloudflare Tunnel (obtenha em seu painel Cloudflare)
+- **CLOUDFLARE_TUNNEL_DOMAIN**: Domínio gerado pelo túnel (ex.: seu-subdominio.trycloudflare.com)
 
 
-DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME: Configurações do PostgreSQL para o Wuzapi.
-WUZAPI_ADMIN_TOKEN: Token de autenticação para o Wuzapi (porta 8080).
-N8N_PROTOCOL/N8N_HOST/N8N_PORT: Configurações do n8n (porta 5678).
-OLLAMA_HOST: Host do Ollama (ajuste para Mac ou GPU).
-QDRANT_HOST/QDRANT_PORT: Configurações do Qdrant (porta 6333).
-WAHA_HOST/WAHA_TOKEN: Configurações do Waha (porta 3000, token específico).
-CLOUDFLARE_TUNNEL_TOKEN: Token de autenticação do Cloudflare Tunnel (obtenha em seu painel Cloudflare).
-CLOUDFLARE_TUNNEL_DOMAIN: Domínio gerado pelo túnel (ex.: seu-subdominio.trycloudflare.com).
+**Nota**: Obtenha o `CLOUDFLARE_TUNNEL_TOKEN` no painel Cloudflare (seção Zero Trust > Tunnels).
 
+## Uso
 
-Obtenha o CLOUDFLARE_TUNNEL_TOKEN no painel Cloudflare (seção Zero Trust > Tunnels).
+### Acesse a Interface de Administração
 
-Uso
-Acesse a Interface de Administração
+- **n8n**: Abra `http://localhost:5678/` localmente ou `https://seu-subdominio.trycloudflare.com` via Cloudflare Tunnel
+- **Wuzapi**: Abra `http://localhost:8080/admin` localmente ou `https://seu-subdominio.trycloudflare.com:8080/admin` via túnel, usando o token `${WUZAPI_ADMIN_TOKEN}` (ex.: cabeçalho `Authorization: Bearer ...`)
 
-n8n: Abra http://localhost:5678/ localmente ou https://seu-subdominio.trycloudflare.com via Cloudflare Tunnel.
-Wuzapi: Abra http://localhost:8080/admin localmente ou https://seu-subdominio.trycloudflare.com:8080/admin via túnel, usando o token ${WUZAPI_ADMIN_TOKEN} (ex.: cabeçalho Authorization: Bearer ...).
+### Endpoints da API
 
-Endpoints da API
 Os endpoints da API podem incluir (confira a documentação ou código para detalhes exatos):
 
-Wuzapi:
-GET /api: Informações gerais da API.
-GET /api/users: Lista usuários registrados.
-POST /api/users: Cria um novo usuário.
-GET /admin: Interface de administração.Exemplo:
+#### Wuzapi:
+- `GET /api`: Informações gerais da API
+- `GET /api/users`: Lista usuários registrados
+- `POST /api/users`: Cria um novo usuário
+- `GET /admin`: Interface de administração
 
+**Exemplo:**
+```bash
 curl -v -H "Authorization: Bearer ${WUZAPI_ADMIN_TOKEN}" https://seu-subdominio.trycloudflare.com/api
+```
 
 
 Waha:
