@@ -1,0 +1,249 @@
+volumes:
+  n8n_storage:
+  postgres_storage:
+  ollama_storage:
+  redis_storage:
+  waha_sessions:
+  waha_media:
+  wuzapi_sessions:
+  wuzapi_media:
+
+networks:
+  demo:
+
+x-n8n: &service-n8n
+  image: n8nio/n8n:1.117.0
+  networks: ['demo']
+  user: root
+  environment:
+    - DB_TYPE=postgresdb
+    - DB_POSTGRESDB_HOST=postgres
+    - DB_POSTGRESDB_USER=${POSTGRES_USER}
+    - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+    - N8N_DIAGNOSTICS_ENABLED=false
+    - N8N_PERSONALIZATION_ENABLED=false
+    - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+    - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_USER_MANAGEMENT_JWT_SECRET}
+    - QUEUE_BULL_REDIS_HOST=redis
+    - QUEUE_BULL_REDIS_PORT=6379
+    - QUEUE_BULL_REDIS_PASSWORD=${REDIS_PASSWORD}
+    - MINIO_ENDPOINT=http://minio:9000
+    - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+    - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+    - PYTHONPATH=/opt/venv/lib/python3.11/site-packages:${PYTHONPATH:-}
+    - PATH=/opt/venv/bin:$PATH
+    - N8N_TRUST_PROXY=true
+  links:
+    - postgres
+    - redis
+  entrypoint: >
+    /bin/sh -c "
+    apk add --update python3 py3-pip gcc python3-dev musl-dev curl ffmpeg &&
+    rm -f /usr/lib/python3.*/EXTERNALLY-MANAGED &&
+    python3 -m venv /opt/venv &&
+    . /opt/venv/bin/activate &&
+    pip install yt-dlp &&
+    chown -R node:node /opt/venv &&
+    su node -c 'n8n start'"
+
+x-ollama: &service-ollama
+  image: ollama/ollama:latest
+  container_name: ollama
+  networks: ['demo']
+  restart: unless-stopped
+  ports:
+    - 11434:11434
+  volumes:
+    - ollama_storage:/root/.ollama
+
+x-init-ollama: &init-ollama
+  image: ollama/ollama:latest
+  networks: ['demo']
+  container_name: ollama-pull-llama
+  volumes:
+    - ollama_storage:/root/.ollama
+  entrypoint: /bin/sh
+  command:
+    - "-c"
+    - "sleep 3; OLLAMA_HOST=ollama:11434 ollama pull llama3.2"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    networks: ['demo']
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    command: [
+      "postgres",
+      "-c", "maintenance_work_mem=128MB",
+      "-c", "effective_cache_size=512MB",
+      "-c", "shared_buffers=256MB",
+      "-c", "max_connections=500"
+    ]
+    volumes:
+      - postgres_storage:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    networks: ['demo']
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_storage:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  n8n-import:
+    <<: *service-n8n
+    container_name: n8n-import
+    entrypoint: /bin/sh
+    command:
+      - "-c"
+      - "apk add --update python3 py3-pip gcc python3-dev musl-dev curl ffmpeg && rm -f /usr/lib/python3.*/EXTERNALLY-MANAGED && python3 --version && ffmpeg -version && n8n import:credentials --separate --input=/backup/credentials && n8n import:workflow --separate --input=/backup/workflows"
+    volumes:
+      - ./n8n/backup:/backup
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  n8n:
+    <<: *service-n8n
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - 5678:5678
+    volumes:
+      - n8n_storage:/home/node/.n8n
+      - ./n8n/backup:/backup
+      - ./shared:/data/shared
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      n8n-import:
+        condition: service_completed_successfully
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    networks: ['demo']
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    environment:
+      - TUNNEL_URL=http://n8n:5678
+    depends_on:
+      n8n:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "cloudflared", "--version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  waha:
+    image: devlikeapro/waha:latest
+    platform: linux/amd64
+    environment:
+      WHATSAPP_HOOK_URL: http://host.docker.internal:5678/webhook/webhook
+      WHATSAPP_DEFAULT_ENGINE: GOWS
+      WHATSAPP_HOOK_EVENTS: message
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD}
+      WAHA_API_KEY: ${WAHA_API_KEY}
+    volumes:
+      - waha_sessions:/app/.sessions
+      - waha_media:/app/.media
+    ports:
+      - "3000:3000"
+
+  wuzapi:
+    image: golang:1.24-alpine
+    container_name: wuzapi
+    networks: ['demo']
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - WUZAPI_ADMIN_TOKEN=${WUZAPI_ADMIN_TOKEN}
+      - DB_HOST=postgres
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=wuzapi
+      - DB_PORT=5432
+      - DB_SSLMODE=false
+      - TZ=America/New_York
+      - WEBHOOK_FORMAT=json
+      - SESSION_DEVICE_NAME=WuzAPI
+      - WUZAPI_PORT=8080
+    volumes:
+      - wuzapi_sessions:/app/sessions
+      - wuzapi_media:/app/media
+      - ./.env:/app/.env
+    working_dir: /app
+    entrypoint: /bin/sh
+    command:
+      - "-c"
+      - "apk add --no-cache git && \
+         git clone https://github.com/asternic/wuzapi.git /tmp/wuzapi && \
+         cp -r /tmp/wuzapi/* /app/ && \
+         rm -rf /tmp/wuzapi && \
+         cd /app && \
+         if [ ! -f go.mod ]; then go mod init wuzapi; fi && \
+         go get -u go.mau.fi/whatsmeow@latest && \
+         go mod tidy && \
+         go build . && \
+         ./wuzapi -port=8080 -logtype=console -color=true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama-cpu:
+    profiles: ["cpu"]
+    <<: *service-ollama
+
+  ollama-gpu:
+    profiles: ["gpu-nvidia"]
+    <<: *service-ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  ollama-pull-llama-cpu:
+    profiles: ["cpu"]
+    <<: *init-ollama
+    depends_on:
+      - ollama-cpu
+
+  ollama-pull-llama-gpu:
+    profiles: ["gpu-nvidia"]
+    <<: *init-ollama
+    depends_on:
+      - ollama-gpu
