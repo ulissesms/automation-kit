@@ -291,7 +291,7 @@ services:
       
       # Authentication
       - AUTHENTICATION_TYPE=apikey
-      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-B6D711FCDE4D4FD5936544120E713976}
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-evolution-api-key-change-me}
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
       
       # Language

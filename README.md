@@ -175,7 +175,7 @@ CLOUDFLARE_TUNNEL_DOMAIN=seu-subdominio.trycloudflare.com
 
 # Configurações da Evolution API
 EVOLUTION_SERVER_URL=http://localhost:8021
-EVOLUTION_API_KEY=B6D711FCDE4D4FD5936544120E713976
+EVOLUTION_API_KEY=sua_evolution_api_key_aqui
 EVOLUTION_LOG_LEVEL=ERROR
 EVOLUTION_WEBHOOK_URL=http://host.docker.internal:5678/webhook/evolution
 
