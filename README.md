@@ -1,16 +1,19 @@
-Automation Kit
+# Automation Kit
+
 O Automation Kit é um kit de inicialização open-source para automação com IA, baseado no template oficial do n8n Self-hosted AI Starter Kit. Ele fornece um ambiente Docker Compose robusto para rodar n8n com integrações de IA locais, incluindo Ollama para LLMs, Qdrant para armazenamento de vetores, PostgreSQL para dados, e os serviços personalizados Wuzapi (para administração e APIs) e Waha (para funcionalidades específicas). Além disso, inclui o Cloudflare Tunnel (cloudflared) para expor os serviços de forma segura pela internet.
+
 Curated by n8n-io, ele combina a plataforma low-code n8n com componentes de IA e serviços adicionais para workflows self-hosted e seguros.
 
-O que está incluído
-✅ n8n self-hosted - Plataforma low-code com mais de 400 integrações e componentes avançados de IA
-✅ Ollama - Plataforma LLM multiplataforma para instalar e rodar LLMs locais
-✅ Qdrant - Armazenamento de vetores open-source de alto desempenho com API completa
-✅ PostgreSQL - Banco de dados robusto para gerenciar grandes volumes de dados de forma segura
-✅ Wuzapi - Serviço personalizado para administração e APIs, integrado ao ambiente
-✅ Waha - Serviço adicional para funcionalidades específicas (ex.: integração com WhatsApp ou outras APIs)
-✅ Cloudflare Tunnel (cloudflared) - Ferramenta para expor os serviços de forma segura via internet
-O que você pode construir
+## O que está incluído
+- ✅ **n8n self-hosted** - Plataforma low-code com mais de 400 integrações e componentes avançados de IA
+- ✅ **Ollama** - Plataforma LLM multiplataforma para instalar e rodar LLMs locais
+- ✅ **Qdrant** - Armazenamento de vetores open-source de alto desempenho com API completa
+- ✅ **PostgreSQL** - Banco de dados robusto para gerenciar grandes volumes de dados de forma segura
+- ✅ **Wuzapi** - Serviço personalizado para administração e APIs, integrado ao ambiente
+- ✅ **Waha** - Serviço adicional para funcionalidades específicas (ex.: integração com WhatsApp ou outras APIs)
+- ✅ **Cloudflare Tunnel (cloudflared)** - Ferramenta para expor os serviços de forma segura via internet
+
+## O que você pode construir
 ⭐️ Agentes de IA para agendamento de compromissos
 ⭐️ Resumo de PDFs corporativos de forma segura, sem vazamento de dados
 ⭐️ Bots Slack mais inteligentes para comunicação e operações de TI
