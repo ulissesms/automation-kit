@@ -14,7 +14,7 @@ networks:
   demo:
 
 x-n8n: &service-n8n
-  image: n8nio/n8n:1.117.0
+  image: n8nio/n8n:1.118.0
   networks: ['demo']
   user: root
   environment:
@@ -176,9 +176,9 @@ services:
       - waha_media:/app/.media
     ports:
       - "3000:3000"
-
+# WUZAPI: USANDO IMAGEM OFICIAL (SEM COMPILAÇÃO!)
   wuzapi:
-    image: golang:1.24-alpine
+    image: asternic/wuzapi:latest
     container_name: wuzapi
     networks: ['demo']
     restart: unless-stopped
@@ -200,20 +200,6 @@ services:
       - wuzapi_sessions:/app/sessions
       - wuzapi_media:/app/media
       - ./.env:/app/.env
-    working_dir: /app
-    entrypoint: /bin/sh
-    command:
-      - "-c"
-      - "apk add --no-cache git && \
-         git clone https://github.com/asternic/wuzapi.git /tmp/wuzapi && \
-         cp -r /tmp/wuzapi/* /app/ && \
-         rm -rf /tmp/wuzapi && \
-         cd /app && \
-         if [ ! -f go.mod ]; then go mod init wuzapi; fi && \
-         go get -u go.mau.fi/whatsmeow@latest && \
-         go mod tidy && \
-         go build . && \
-         ./wuzapi -port=8080 -logtype=console -color=true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -224,8 +210,7 @@ services:
       retries: 5
 
   evolution-api:
-    image: atendai/evolution-api:v2.1.1
-    container_name: evolution-api
+    image: evoapicloud/evolution-api:v2.3.6
     networks: ['demo']
     restart: unless-stopped
     ports:
@@ -297,7 +282,7 @@ services:
       
       # Authentication
       - AUTHENTICATION_TYPE=apikey
-      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-evolution-api-key-change-me}
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY}
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
       
       # Language
