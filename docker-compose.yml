@@ -38,7 +38,7 @@ x-n8n: &service-n8n
     - postgres
     - redis
   entrypoint: >
-    /bin/sh -c " apk add --update python3 py3-pip gcc python3-dev musl-dev curl ffmpeg && rm -f /usr/lib/python3.*/EXTERNALLY-MANAGED && python3 -m venv /opt/venv && . /opt/venv/bin/activate && pip install yt-dlp && chown -R node:node /opt/venv && su node -c 'n8n start'"
+    /bin/sh -c "apk add --update python3 py3-pip gcc python3-dev musl-dev curl ffmpeg && rm -f /usr/lib/python3.*/EXTERNALLY-MANAGED && python3 -m venv /opt/venv && . /opt/venv/bin/activate && pip install yt-dlp && chown -R node:node /opt/venv && su node -c 'n8n start'"
 
 x-ollama: &service-ollama
   image: ollama/ollama:latest
