@@ -10,12 +10,14 @@ volumes:
   evolution_instances:
   evolution_store:
 
+
 networks:
   demo:
 
+
 x-n8n: &service-n8n
-  image: n8nio/n8n:1.118.0
-  networks: ['demo']
+  image: n8nio/n8n:2.1.1
+  networks: [ 'demo' ]
   user: root
   environment:
     - DB_TYPE=postgresdb
@@ -29,9 +31,6 @@ x-n8n: &service-n8n
     - QUEUE_BULL_REDIS_HOST=redis
     - QUEUE_BULL_REDIS_PORT=6379
     - QUEUE_BULL_REDIS_PASSWORD=${REDIS_PASSWORD}
-    - MINIO_ENDPOINT=http://minio:9000
-    - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
-    - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
     - PYTHONPATH=/opt/venv/lib/python3.11/site-packages:${PYTHONPATH:-}
     - PATH=/opt/venv/bin:$PATH
     - N8N_TRUST_PROXY=true
@@ -39,19 +38,12 @@ x-n8n: &service-n8n
     - postgres
     - redis
   entrypoint: >
-    /bin/sh -c "
-    apk add --update python3 py3-pip gcc python3-dev musl-dev curl ffmpeg &&
-    rm -f /usr/lib/python3.*/EXTERNALLY-MANAGED &&
-    python3 -m venv /opt/venv &&
-    . /opt/venv/bin/activate &&
-    pip install yt-dlp &&
-    chown -R node:node /opt/venv &&
-    su node -c 'n8n start'"
+    /bin/sh -c " apk add --update python3 py3-pip gcc python3-dev musl-dev curl ffmpeg && rm -f /usr/lib/python3.*/EXTERNALLY-MANAGED && python3 -m venv /opt/venv && . /opt/venv/bin/activate && pip install yt-dlp && chown -R node:node /opt/venv && su node -c 'n8n start'"
 
 x-ollama: &service-ollama
   image: ollama/ollama:latest
   container_name: ollama
-  networks: ['demo']
+  networks: [ 'demo' ]
   restart: unless-stopped
   ports:
     - 11434:11434
@@ -60,7 +52,7 @@ x-ollama: &service-ollama
 
 x-init-ollama: &init-ollama
   image: ollama/ollama:latest
-  networks: ['demo']
+  networks: [ 'demo' ]
   container_name: ollama-pull-llama
   volumes:
     - ollama_storage:/root/.ollama
@@ -72,7 +64,7 @@ x-init-ollama: &init-ollama
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    networks: ['demo']
+    networks: [ 'demo' ]
     restart: unless-stopped
     ports:
       - "5432:5432"
@@ -80,17 +72,11 @@ services:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - POSTGRES_DB
-    command: [
-      "postgres",
-      "-c", "maintenance_work_mem=128MB",
-      "-c", "effective_cache_size=512MB",
-      "-c", "shared_buffers=256MB",
-      "-c", "max_connections=500"
-    ]
+    command: [ "postgres", "-c", "maintenance_work_mem=128MB", "-c", "effective_cache_size=512MB", "-c", "shared_buffers=256MB", "-c", "max_connections=500" ]
     volumes:
       - postgres_storage:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      test: [ 'CMD-SHELL', 'pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}' ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -98,15 +84,15 @@ services:
   redis:
     image: redis:alpine
     container_name: redis
-    networks: ['demo']
+    networks: [ 'demo' ]
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6379"
     command: redis-server --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_storage:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -147,7 +133,7 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared
-    networks: ['demo']
+    networks: [ 'demo' ]
     restart: unless-stopped
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     environment:
@@ -156,7 +142,7 @@ services:
       n8n:
         condition: service_started
     healthcheck:
-      test: ["CMD", "cloudflared", "--version"]
+      test: [ "CMD", "cloudflared", "--version" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -176,11 +162,11 @@ services:
       - waha_media:/app/.media
     ports:
       - "3000:3000"
-# WUZAPI: USANDO IMAGEM OFICIAL (SEM COMPILAÇÃO!)
+  # WUZAPI: USANDO IMAGEM OFICIAL (SEM COMPILAÇÃO!)
   wuzapi:
     image: asternic/wuzapi:latest
     container_name: wuzapi
-    networks: ['demo']
+    networks: [ 'demo' ]
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -204,14 +190,14 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/api" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
   evolution-api:
     image: evoapicloud/evolution-api:v2.3.6
-    networks: ['demo']
+    networks: [ 'demo' ]
     restart: unless-stopped
     ports:
       - "8021:8080"
@@ -220,17 +206,17 @@ services:
       - SERVER_TYPE=http
       - SERVER_PORT=8080
       - SERVER_URL=${EVOLUTION_SERVER_URL:-http://localhost:8021}
-      
+
       # CORS
       - CORS_ORIGIN=*
       - CORS_METHODS=GET,POST,PUT,DELETE
       - CORS_CREDENTIALS=true
-      
+
       # Log Config
       - LOG_LEVEL=${EVOLUTION_LOG_LEVEL:-ERROR}
       - LOG_COLOR=true
       - LOG_BAILEYS=${EVOLUTION_LOG_BAILEYS:-error}
-      
+
       # Database Config
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
@@ -241,63 +227,63 @@ services:
       - DATABASE_SAVE_MESSAGE_UPDATE=true
       - DATABASE_SAVE_DATA_CONTACTS=true
       - DATABASE_SAVE_DATA_CHATS=true
-      
+
       # Redis Config
       - REDIS_ENABLED=true
       - REDIS_URI=redis://:${REDIS_PASSWORD}@redis:6379
       - REDIS_PREFIX_KEY=evolution
-      
+
       # RabbitMQ Config (opcional)
       - RABBITMQ_ENABLED=false
-      
+
       # EventsWebhook Config
       - WEBSOCKET_ENABLED=false
-      
+
       # Global Webhook
       - WEBHOOK_GLOBAL_URL=${EVOLUTION_WEBHOOK_URL:-}
       - WEBHOOK_GLOBAL_ENABLED=false
       - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
-      
+
       # Config Session
       - CONFIG_SESSION_PHONE_CLIENT=Evolution API
       - CONFIG_SESSION_PHONE_NAME=Chrome
-      
+
       # Qr Code Config
       - QRCODE_LIMIT=30
       - QRCODE_COLOR=#198754
-      
+
       # Typebot Config
       - TYPEBOT_API_VERSION=latest
-      
+
       # Chatwoot Config
       - CHATWOOT_MESSAGE_READ=true
       - CHATWOOT_MESSAGE_DELETE=true
-      
+
       # Cache Config
       - CACHE_REDIS_ENABLED=true
       - CACHE_REDIS_URI=redis://default:${REDIS_PASSWORD}@redis:6379
       - CACHE_REDIS_PREFIX_KEY=evolution
       - CACHE_REDIS_TTL=604800
       - CACHE_LOCAL_ENABLED=false
-      
+
       # Authentication
       - AUTHENTICATION_TYPE=apikey
       - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY}
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
-      
+
       # Language
       - LANGUAGE=pt-BR
-      
+
       # DEL_INSTANCE
       - DEL_INSTANCE=false
       - DEL_TEMP_INSTANCES=true
-      
+
       # Provider Files
       - PROVIDER_ENABLED=false
-      
+
       # S3 Config (opcional)
       - S3_ENABLED=false
-      
+
     volumes:
       - evolution_instances:/evolution/instances
       - evolution_store:/evolution/store
@@ -307,17 +293,17 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
       interval: 30s
       timeout: 10s
       retries: 3
 
   ollama-cpu:
-    profiles: ["cpu"]
+    profiles: [ "cpu" ]
     <<: *service-ollama
 
   ollama-gpu:
-    profiles: ["gpu-nvidia"]
+    profiles: [ "gpu-nvidia" ]
     <<: *service-ollama
     deploy:
       resources:
@@ -325,16 +311,16 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]
 
   ollama-pull-llama-cpu:
-    profiles: ["cpu"]
+    profiles: [ "cpu" ]
     <<: *init-ollama
     depends_on:
       - ollama-cpu
 
   ollama-pull-llama-gpu:
-    profiles: ["gpu-nvidia"]
+    profiles: [ "gpu-nvidia" ]
     <<: *init-ollama
     depends_on:
       - ollama-gpu
