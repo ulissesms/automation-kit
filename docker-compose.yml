@@ -103,7 +103,7 @@ services:
     entrypoint: /bin/sh
     command:
       - "-c"
-      - "apk add --update python3 py3-pip gcc python3-dev musl-dev curl ffmpeg && rm -f /usr/lib/python3.*/EXTERNALLY-MANAGED && python3 --version && ffmpeg -version && n8n import:credentials --separate --input=/backup/credentials && n8n import:workflow --separate --input=/backup/workflows"
+      - "n8n import:credentials --separate --input=/backup/credentials && n8n import:workflow --separate --input=/backup/workflows"
     volumes:
       - ./n8n/backup:/backup
     depends_on:
