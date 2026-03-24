@@ -195,12 +195,12 @@ services:
     networks: [ 'demo' ]
     restart: unless-stopped
     ports:
-      - "8021:8080"
+      - "8022:8080"
     environment:
       # Server Config
       - SERVER_TYPE=http
       - SERVER_PORT=8080
-      - SERVER_URL=${EVOLUTION_SERVER_URL:-http://localhost:8021}
+      - SERVER_URL=${EVOLUTION_SERVER_URL:-http://localhost:8022}
 
       # CORS
       - CORS_ORIGIN=*
