@@ -16,7 +16,7 @@ networks:
 
 
 x-n8n: &service-n8n
-  image: n8nio/n8n:2.1.1
+  image: n8nio/n8n:2.14.0
   networks: [ 'demo' ]
   environment:
     - DB_TYPE=postgresdb
@@ -191,7 +191,7 @@ services:
       retries: 5
 
   evolution-api:
-    image: evoapicloud/evolution-api:v2.3.6
+    image: evoapicloud/evolution-api:v2.3.7
     networks: [ 'demo' ]
     restart: unless-stopped
     ports:
